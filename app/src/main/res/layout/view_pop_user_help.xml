@@ -1,0 +1,139 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+              android:orientation="vertical"
+              android:layout_width="fill_parent"
+              android:id="@+id/layout"
+              android:layout_height="fill_parent">
+
+
+
+    <LinearLayout
+        android:layout_alignParentBottom="true"
+        android:layout_margin="10dp"
+        android:layout_width="fill_parent"
+        android:layout_height="wrap_content"
+        android:focusableInTouchMode="false"
+        android:background="@drawable/ic_shap_user_help"
+        android:orientation="vertical">
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:padding="16dp"
+            android:text="@string/user_help"
+            android:gravity="center"/>
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="1dp"
+            android:background="#909e9e9e"/>
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="100dp"
+            android:orientation="horizontal">
+
+            <RelativeLayout
+                android:id="@+id/layout_lock"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:background="@drawable/selecter_button_user_help"
+                android:layout_weight="1">
+
+                <ImageView
+                    android:id="@+id/lock"
+                    android:layout_width="40dp"
+                    android:layout_height="40dp"
+                    android:layout_margin="16dp"
+                    android:layout_centerHorizontal="true"
+                    android:src="@drawable/ic_help_lock"/>
+
+                <TextView
+                    android:layout_below="@+id/lock"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_centerHorizontal="true"
+                    android:text="@string/help_lock"/>
+
+            </RelativeLayout>
+
+            <RelativeLayout
+                android:id="@+id/layout_repair"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:background="@drawable/selecter_button_user_help"
+                android:layout_weight="1">
+                <ImageView
+                    android:id="@+id/repair"
+                    android:layout_width="40dp"
+                    android:layout_height="40dp"
+                    android:layout_margin="16dp"
+                    android:layout_centerHorizontal="true"
+                    android:src="@drawable/ic_help_repair"/>
+
+                <TextView
+                    android:layout_below="@+id/repair"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_centerHorizontal="true"
+                    android:text="@string/help_repair"/>
+            </RelativeLayout>
+
+        </LinearLayout>
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="100dp"
+            android:orientation="horizontal">
+
+            <RelativeLayout
+                android:id="@+id/layout_warming"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:background="@drawable/selecter_button_user_help"
+                android:layout_weight="1">
+                <ImageView
+                    android:id="@+id/warming"
+                    android:layout_width="40dp"
+                    android:layout_height="40dp"
+                    android:layout_margin="16dp"
+                    android:layout_centerHorizontal="true"
+                    android:src="@drawable/ic_help_warning"/>
+
+                <TextView
+                    android:layout_below="@+id/warming"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_centerHorizontal="true"
+                    android:text="@string/help_warming"/>
+            </RelativeLayout>
+
+            <RelativeLayout
+                android:id="@+id/layout_chat"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:background="@drawable/selecter_button_user_help"
+                android:layout_weight="1">
+
+                <ImageView
+                    android:id="@+id/chat"
+                    android:layout_width="40dp"
+                    android:layout_height="40dp"
+                    android:layout_margin="16dp"
+                    android:layout_centerHorizontal="true"
+                    android:src="@drawable/ic_help_chat"/>
+
+                <TextView
+                    android:layout_below="@+id/chat"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_centerHorizontal="true"
+                    android:text="@string/help_chat"/>
+
+            </RelativeLayout>
+
+        </LinearLayout>
+
+    </LinearLayout>
+
+
+</RelativeLayout>

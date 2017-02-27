@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <color name="app_color">#262930</color>
+
+    <color name="app_scan">#262930</color>
+    <color name="app_scan_bg">#90262930</color>
+
+    <color name="colorPrimary">#262930</color>
+    <color name="colorPrimaryDark">#262930</color>
+    <color name="colorAccent">#ffffff</color>
+    <color name="white">#ffffff</color>
+
+
+</resources>
