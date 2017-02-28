@@ -1,8 +1,13 @@
 package cn.junjian.simplebike.ui;
 
+import android.content.Intent;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
+import android.graphics.Color;
 import android.os.Bundle;
 import android.provider.SyncStateContract;
 import android.support.annotation.Nullable;
+import android.support.v4.app.ActivityCompat;
 import android.support.v7.widget.Toolbar;
 import android.util.Log;
 import android.view.Gravity;
@@ -12,6 +17,7 @@ import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.WindowManager;
+import android.widget.ImageView;
 import android.widget.PopupWindow;
 
 import com.amap.api.location.AMapLocation;
@@ -19,12 +25,18 @@ import com.amap.api.location.AMapLocationClient;
 import com.amap.api.location.AMapLocationClientOption;
 import com.amap.api.location.AMapLocationListener;
 import com.amap.api.maps.AMap;
+import com.amap.api.maps.AMapOptions;
 import com.amap.api.maps.CameraUpdate;
 import com.amap.api.maps.CameraUpdateFactory;
+import com.amap.api.maps.LocationSource;
 import com.amap.api.maps.MapView;
+import com.amap.api.maps.model.BitmapDescriptor;
 import com.amap.api.maps.model.BitmapDescriptorFactory;
 import com.amap.api.maps.model.CameraPosition;
+import com.amap.api.maps.model.Circle;
+import com.amap.api.maps.model.CircleOptions;
 import com.amap.api.maps.model.LatLng;
+import com.amap.api.maps.model.Marker;
 import com.amap.api.maps.model.MarkerOptions;
 
 import java.text.SimpleDateFormat;
@@ -32,13 +44,14 @@ import java.util.Date;
 
 import cn.junjian.simplebike.R;
 import cn.junjian.simplebike.base.BaseActivity;
+import cn.junjian.simplebike.utlis.SensorEventHelper;
 
 /**
  * Created by junjianliu
  * on 17/2/14
  * email:spyhanfeng@qq.com
  */
-public class MainActivity extends BaseActivity implements IMain, AMapLocationListener, View.OnClickListener {
+public class MainActivity extends BaseActivity implements IMain, AMapLocationListener, View.OnClickListener, LocationSource {
 
     private Toolbar toolbar;
 
@@ -46,6 +59,19 @@ public class MainActivity extends BaseActivity implements IMain, AMapLocationLis
     private AMap aMap;
 
     private PopupWindow popupWindow;
+
+    private LocationSource.OnLocationChangedListener listener;
+
+    private boolean mFirstFix = false;
+    private Marker mLocMarker;
+    private SensorEventHelper mSensorHelper;
+    private Circle mCircle;
+
+    private static final int STROKE_COLOR = Color.argb(180, 3, 145, 255);
+    private static final int FILL_COLOR = Color.argb(10, 0, 0, 180);
+    public static final String LOCATION_MARKER_FLAG = "mylocation";
+
+    private ImageView headImg;
 
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
@@ -55,23 +81,42 @@ public class MainActivity extends BaseActivity implements IMain, AMapLocationLis
         toolbar = (Toolbar) findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
 
+        init();
+
         mapView = (MapView) findViewById(R.id.map);
         mapView.onCreate(savedInstanceState);// 此方法必须重写
-        aMap = mapView.getMap();
 
-        aMap.setMyLocationEnabled(true);// 设置为true表示显示定位层并可触发定位，false表示隐藏定位层并不可触发定位，默认是false
-        // 设置定位的类型为定位模式 ，可以由定位、跟随或地图根据面向方向旋转几种
-        aMap.setMyLocationType(AMap.LOCATION_TYPE_LOCATE);
-        // 隐藏地图缩放按钮
-        aMap.getUiSettings().setZoomControlsEnabled(false);
+        if(aMap == null){
+            aMap = mapView.getMap();
+
+            // 隐藏地图缩放按钮
+            aMap.getUiSettings().setZoomControlsEnabled(false);
+            // 设置logo 位置
+            aMap.getUiSettings().setLogoPosition(AMapOptions.LOGO_POSITION_BOTTOM_RIGHT);
+
+            aMap.setLocationSource(this);// 设置定位监听
+            aMap.getUiSettings().setMyLocationButtonEnabled(false);// 设置默认定位按钮是否显示
+            aMap.setMyLocationEnabled(true);
+            // 设置定位的类型为定位模式 ，可以由定位、跟随或地图根据面向方向旋转几种
+            aMap.setMyLocationType(AMap.LOCATION_TYPE_LOCATE);
+        }
+
+        mSensorHelper = new SensorEventHelper(this);
+        if (mSensorHelper != null) {
+            mSensorHelper.registerSensorListener();
+        }
 
         initMap();
 
         findViewById(R.id.layout_scan).setOnClickListener(this);
+        findViewById(R.id.btn_user_csr).setOnClickListener(this);
     }
 
     @Override
     public void init() {
+
+        headImg = (ImageView) findViewById(R.id.head_img);
+        headImg.setOnClickListener(this);
 
     }
 
@@ -108,7 +153,7 @@ public class MainActivity extends BaseActivity implements IMain, AMapLocationLis
 
         //声明mLocationOption对象
 
-        mlocationClient = new AMapLocationClient(getApplicationContext());
+     /*   mlocationClient = new AMapLocationClient(getApplicationContext());
         //初始化定位参数
         mLocationOption = new AMapLocationClientOption();//设置定位监听
         mlocationClient.setLocationListener(this);
@@ -123,9 +168,42 @@ public class MainActivity extends BaseActivity implements IMain, AMapLocationLis
         // 在定位结束后，在合适的生命周期调用onDestroy()方法
         // 在单次定位情况下，定位无论成功与否，都无需调用stopLocation()方法移除请求，定位sdk内部会移除
         //启动定位
-        mlocationClient.startLocation();
+        mlocationClient.startLocation();*/
 
     }
+
+    /**
+     * 激活定位
+     */
+    public void activate(LocationSource.OnLocationChangedListener listener) {
+        this.listener = listener;
+        if (mlocationClient == null) {
+            mlocationClient = new AMapLocationClient(this);
+            mLocationOption = new AMapLocationClientOption();
+            //设置定位监听
+            mlocationClient.setLocationListener(this);
+            //设置为高精度定位模式
+            mLocationOption.setLocationMode(AMapLocationClientOption.AMapLocationMode.Hight_Accuracy);
+            //设置定位参数
+            mlocationClient.setLocationOption(mLocationOption);
+            // 此方法为每隔固定时间会发起一次定位请求，为了减少电量消耗或网络流量消耗，
+            // 注意设置合适的定位时间的间隔（最小间隔支持为2000ms），并且在合适时间调用stopLocation()方法来取消定位请求
+            // 在定位结束后，在合适的生命周期调用onDestroy()方法
+            // 在单次定位情况下，定位无论成功与否，都无需调用stopLocation()方法移除请求，定位sdk内部会移除
+            mlocationClient.startLocation();
+        }
+    }
+
+    @Override
+    public void deactivate() {
+        this.listener = null;
+        if (mlocationClient != null) {
+            mlocationClient.stopLocation();
+            mlocationClient.onDestroy();
+        }
+        mlocationClient = null;
+    }
+
 
     @Override
     public void refresh() {
@@ -154,7 +232,33 @@ public class MainActivity extends BaseActivity implements IMain, AMapLocationLis
 
     @Override
     public void onLocationChanged(AMapLocation amapLocation) {
-        if (amapLocation != null) {
+        if (listener != null && amapLocation != null) {
+            if (amapLocation != null
+                    && amapLocation.getErrorCode() == 0) {
+                LatLng location = new LatLng(amapLocation.getLatitude(), amapLocation.getLongitude());
+                if (!mFirstFix) {
+                    mFirstFix = true;
+                    addCircle(location, amapLocation.getAccuracy());//添加定位精度圆
+                    addMarker(location);//添加定位图标
+                    mSensorHelper.setCurrentMarker(mLocMarker);//定位图标旋转
+                    aMap.moveCamera(CameraUpdateFactory.newLatLngZoom(location, 18));
+                } else {
+                    mCircle.setCenter(location);
+                    mCircle.setRadius(amapLocation.getAccuracy());
+                    mLocMarker.setPosition(location);
+                }
+                //aMap.moveCamera(CameraUpdateFactory.newLatLngZoom(location, 18));
+            } else {
+                String errText = "定位失败," + amapLocation.getErrorCode()+ ": " + amapLocation.getErrorInfo();
+                Log.e("AmapErr",errText);
+            }
+        }
+
+        /*if (listener != null) {
+            listener.onLocationChanged(amapLocation);// 显示系统小蓝点
+        }*/
+
+       /* if (amapLocation != null) {
             if (amapLocation.getErrorCode() == 0) {
                 //定位成功回调信息，设置相关消息
                 amapLocation.getLocationType();//获取当前定位结果来源，如网络定位结果，详见定位类型表
@@ -164,8 +268,6 @@ public class MainActivity extends BaseActivity implements IMain, AMapLocationLis
                 SimpleDateFormat df = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
                 Date date = new Date(amapLocation.getTime());
                 df.format(date);//定位时间
-
-                Log.e("TAG >>>", "onLocationChanged: amapLocation 2 = " + amapLocation.toString());
 
                 LatLng temp = new LatLng(amapLocation.getLatitude(),amapLocation.getLongitude());
                 toLoc(temp);
@@ -178,7 +280,7 @@ public class MainActivity extends BaseActivity implements IMain, AMapLocationLis
                         + amapLocation.getErrorCode() + ", errInfo:"
                         + amapLocation.getErrorInfo());
             }
-        }
+        }*/
     }
 
 
@@ -189,6 +291,18 @@ public class MainActivity extends BaseActivity implements IMain, AMapLocationLis
     protected void onResume() {
         super.onResume();
         mapView.onResume();
+        if (mSensorHelper != null) {
+            mSensorHelper.registerSensorListener();
+        } else {
+            mSensorHelper = new SensorEventHelper(this);
+            if (mSensorHelper != null) {
+                mSensorHelper.registerSensorListener();
+
+                if (mSensorHelper.getCurrentMarker() == null && mLocMarker != null) {
+                    mSensorHelper.setCurrentMarker(mLocMarker);
+                }
+            }
+        }
     }
 
     /**
@@ -198,6 +312,15 @@ public class MainActivity extends BaseActivity implements IMain, AMapLocationLis
     protected void onPause() {
         super.onPause();
         mapView.onPause();
+        deactivate();
+        if (mSensorHelper != null) {
+            mSensorHelper.unRegisterSensorListener();
+            mSensorHelper.setCurrentMarker(null);
+            mSensorHelper = null;
+        }
+        mapView.onPause();
+        deactivate();
+        mFirstFix = false;
     }
 
     /**
@@ -216,6 +339,9 @@ public class MainActivity extends BaseActivity implements IMain, AMapLocationLis
     protected void onDestroy() {
         super.onDestroy();
         mapView.onDestroy();
+        if(null != mlocationClient){
+            mlocationClient.onDestroy();
+        }
     }
 
     /**
@@ -237,6 +363,7 @@ public class MainActivity extends BaseActivity implements IMain, AMapLocationLis
             //popupWindow.setWidth(ViewGroup.LayoutParams.MATCH_PARENT);
             //popupWindow.setHeight(ViewGroup.LayoutParams.MATCH_PARENT);
             popupWindow.setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE);
+            popupWindow.setAnimationStyle(R.style.popwin_anim_style);
 
             popupWindow.setFocusable(true);
             popupWindow.setTouchable(true);
@@ -252,6 +379,8 @@ public class MainActivity extends BaseActivity implements IMain, AMapLocationLis
                 }
 
             });
+
+
 
             view.findViewById(R.id.layout).setOnClickListener(new View.OnClickListener() {
                 @Override
@@ -284,7 +413,6 @@ public class MainActivity extends BaseActivity implements IMain, AMapLocationLis
 
                 }
             });
-
             popupWindow.showAtLocation(findViewById(R.id.layout_scan), Gravity.BOTTOM,0,0);
         }else{
             popupWindow.showAtLocation(findViewById(R.id.layout_scan), Gravity.BOTTOM,0,0);
@@ -295,8 +423,55 @@ public class MainActivity extends BaseActivity implements IMain, AMapLocationLis
     public void onClick(View view) {
         switch (view.getId()){
             case R.id.layout_scan:
+
+                break;
+            case R.id.btn_user_csr:
                 initPop();
                 break;
+            case R.id.btn_loc:
+                mlocationClient.startLocation();
+                break;
+            case R.id.btn_refresh:
+
+                break;
+            case R.id.head_img:
+                ActivityCompat.startActivity(this,new Intent(MainActivity.this,MySelfActivity.class),null);
+                break;
         }
+    }
+
+    /**
+     * 添加Circle
+     * @param latlng  坐标
+     * @param radius  半径
+     */
+    private void addCircle(LatLng latlng, double radius) {
+        CircleOptions options = new CircleOptions();
+        options.strokeWidth(1f);
+        options.fillColor(FILL_COLOR);
+        options.strokeColor(STROKE_COLOR);
+        options.center(latlng);
+        options.radius(radius);
+        mCircle = aMap.addCircle(options);
+    }
+
+    /**
+     * 添加Marker
+     */
+    private void addMarker(LatLng latlng) {
+        if (mLocMarker != null) {
+            return;
+        }
+        Bitmap bMap = BitmapFactory.decodeResource(this.getResources(),
+                R.drawable.navi_map_gps_locked);
+        BitmapDescriptor des = BitmapDescriptorFactory.fromBitmap(bMap);
+
+//		BitmapDescriptor des = BitmapDescriptorFactory.fromResource(R.drawable.navi_map_gps_locked);
+        MarkerOptions options = new MarkerOptions();
+        options.icon(des);
+        options.anchor(0.5f, 0.5f);
+        options.position(latlng);
+        mLocMarker = aMap.addMarker(options);
+        mLocMarker.setTitle(LOCATION_MARKER_FLAG);
     }
 }

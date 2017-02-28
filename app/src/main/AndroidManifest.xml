@@ -41,6 +41,8 @@
             </intent-filter>
         </activity>
 
+        <activity android:name=".ui.MySelfActivity"/>
+
         <meta-data
             android:name="com.amap.api.v2.apikey"
             android:value="f3e09f7bb8c1dd83e5aee502fcf20093"/>
